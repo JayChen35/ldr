@@ -43,9 +43,6 @@ export function buildPathGraph(): Graph {
 
     // South beach approach
     N('beach', 240, 196),
-
-    // Northern walks (above palace)
-    N('north_garden', 240, 130),
   ];
   const map = new Map<string, Node>();
   for (const n of nodes) map.set(n.id, n);
@@ -59,7 +56,6 @@ export function buildPathGraph(): Graph {
   };
 
   link('plaza', 'palace_door');
-  link('palace_door', 'north_garden');
   link('plaza', 'bakery_road1');
   link('bakery_road1', 'bakery_door');
   link('plaza', 'coffee_road1');

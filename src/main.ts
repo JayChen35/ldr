@@ -31,19 +31,22 @@ function buildLayers(stage: Container): Layers {
   return { sky, sea, seaSurface, islandBack, islandMid, islandFront, ui };
 }
 
-// Maintain integer pixel scaling: pick the largest integer scale that fits
-// the window. This keeps every pixel crisp, no half-pixel blurring.
+// Fit the canvas to nearly fill the window. We use float scaling here (rather
+// than integer-locking) so the graphic occupies almost the entire viewport at
+// any window size; the GPU's nearest-neighbor scaling still keeps pixel art
+// crisp because the canvas backing buffer stays at VIEW_W × VIEW_H.
 function fitToWindow(canvas: HTMLCanvasElement, app: Application) {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const scale = Math.max(1, Math.min(Math.floor(w / VIEW_W), Math.floor(h / VIEW_H)));
-  const cssW = VIEW_W * scale;
-  const cssH = VIEW_H * scale;
+  const margin = 6; // small breathing room so the panel isn't edge-glued
+  const w = window.innerWidth - margin * 2;
+  const h = window.innerHeight - margin * 2;
+  const scale = Math.min(w / VIEW_W, h / VIEW_H);
+  const cssW = Math.floor(VIEW_W * scale);
+  const cssH = Math.floor(VIEW_H * scale);
   canvas.style.width = `${cssW}px`;
   canvas.style.height = `${cssH}px`;
   canvas.style.position = 'absolute';
-  canvas.style.left = `${Math.round((w - cssW) / 2)}px`;
-  canvas.style.top = `${Math.round((h - cssH) / 2)}px`;
+  canvas.style.left = `${Math.round((window.innerWidth - cssW) / 2)}px`;
+  canvas.style.top = `${Math.round((window.innerHeight - cssH) / 2)}px`;
   // Internal resolution stays at VIEW_W × VIEW_H.
   app.renderer.resize(VIEW_W, VIEW_H);
 }

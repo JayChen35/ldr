@@ -134,56 +134,107 @@ function drawSea(parent: Container): { wavesG: Graphics; sparkleG: Graphics } {
 }
 
 // ─── Boats ────────────────────────────────────────────────────────────────────
-const BOAT_PIXELS: PixelArt = [
-  '...22.....',
-  '..222.....',
-  '.2222.....',
-  '.2222.....',
-  '.2223.....',
-  '.2223.....',
-  '...3......',
-  '111111111.',
-  '.1111111..',
+// Codes: H = hull, h = hull shade, M = mast, S = sail, s = sail shade,
+// F = pennant flag, w = water below hull
+const BOAT_RED: PixelArt = [
+  '......M......',
+  '......M......',
+  '....SSM......',
+  '...SSSM......',
+  '..SSSSM......',
+  '.SSSSSM......',
+  'SSSSSSM......',
+  '.sssssM......',
+  '......M......',
+  '.HHHHHHHHHHH.',
+  'HHHHHHHHHHHHH',
+  '.HHHHHHHHHHH.',
+  '..hhhhhhhhh..',
 ];
-const BOAT2_PIXELS: PixelArt = [
-  '....22..',
-  '...222..',
-  '..2222..',
-  '..2223..',
-  '....3...',
-  '1111111.',
-  '.11111..',
+const BOAT_BLUE: PixelArt = [
+  '......M......',
+  '......MF.....',
+  '....BBM......',
+  '...BBBM......',
+  '..BBBBM......',
+  '.BBBBBM......',
+  'BBBBBBM......',
+  '.bbbbbM......',
+  '......M......',
+  '.HHHHHHHHHHH.',
+  'HHHHHHHHHHHHH',
+  '.HHHHHHHHHHH.',
+  '..hhhhhhhhh..',
+];
+// A small fishing boat (no sail) for variety
+const BOAT_SMALL: PixelArt = [
+  '......M......',
+  '....SSMSS....',
+  '...SSSMSSs...',
+  '...SSSMSSs...',
+  '......M......',
+  '.HHHHHHHHHH..',
+  '..HHHHHHHH...',
 ];
 
 interface Boat {
   sprite: Sprite;
   speed: number;
   bobPhase: number;
+  baseY: number;
 }
 
 function drawBoats(parent: Container, renderer: Renderer): Boat[] {
-  const palette: PaletteMap = {
-    '1': PAL.wood,
-    '2': PAL.white,
-    '3': PAL.awningRed,
+  const paletteRed: PaletteMap = {
+    H: PAL.wood,
+    h: 0x6b3e25,
+    M: 0x4a2f1c,
+    S: PAL.awningRed,
+    s: 0x8a2d2d,
+    F: PAL.awningCream,
   };
-  const tex1 = pixelsToTexture(BOAT_PIXELS, palette, renderer);
-  const tex2 = pixelsToTexture(BOAT2_PIXELS, palette, renderer);
+  const paletteBlue: PaletteMap = {
+    H: PAL.wood,
+    h: 0x6b3e25,
+    M: 0x4a2f1c,
+    B: PAL.dome,
+    b: PAL.domeShade,
+    F: PAL.awningCream,
+  };
+  const paletteSmall: PaletteMap = {
+    H: PAL.wood,
+    h: 0x6b3e25,
+    M: 0x4a2f1c,
+    S: PAL.awningCream,
+    s: PAL.whiteDark,
+  };
+
+  const texRed = pixelsToTexture(BOAT_RED, paletteRed, renderer);
+  const texBlue = pixelsToTexture(BOAT_BLUE, paletteBlue, renderer);
+  const texSmall = pixelsToTexture(BOAT_SMALL, paletteSmall, renderer);
 
   const defs: Array<{ tex: Texture; y: number; speed: number; x: number }> = [
-    { tex: tex1, y: HORIZON_Y + 6, speed: BOAT_SPEED_MIN + 1, x: 60 },
-    { tex: tex2, y: HORIZON_Y + 14, speed: BOAT_SPEED_MAX - 2, x: 320 },
-    { tex: tex1, y: HORIZON_Y + 28, speed: BOAT_SPEED_MIN + 2, x: 440 },
-    { tex: tex2, y: HORIZON_Y + 4, speed: BOAT_SPEED_MIN + 3, x: 200 },
+    { tex: texRed, y: HORIZON_Y + 8, speed: BOAT_SPEED_MIN + 1, x: 50 },
+    { tex: texBlue, y: HORIZON_Y + 28, speed: BOAT_SPEED_MAX - 2, x: 180 },
+    { tex: texRed, y: HORIZON_Y + 50, speed: BOAT_SPEED_MIN + 2, x: 320 },
+    { tex: texBlue, y: HORIZON_Y + 14, speed: BOAT_SPEED_MIN + 3, x: 420 },
+    { tex: texSmall, y: HORIZON_Y + 76, speed: BOAT_SPEED_MIN, x: 100 },
+    { tex: texSmall, y: HORIZON_Y + 92, speed: BOAT_SPEED_MIN + 1, x: 380 },
   ];
 
   const boats: Boat[] = [];
   for (const def of defs) {
     const s = new Sprite(def.tex);
+    s.anchor.set(0.5, 1.0);
     s.x = def.x;
     s.y = def.y;
     parent.addChild(s);
-    boats.push({ sprite: s, speed: def.speed, bobPhase: Math.random() * Math.PI * 2 });
+    boats.push({
+      sprite: s,
+      speed: def.speed,
+      bobPhase: Math.random() * Math.PI * 2,
+      baseY: def.y,
+    });
   }
   return boats;
 }
@@ -209,11 +260,9 @@ export function buildOcean(layers: Layers, renderer: Renderer): OceanRefs {
       // Boats drift right; wrap when off screen, with vertical bob.
       for (const b of boats) {
         b.sprite.x += b.speed * dt;
-        if (b.sprite.x > VIEW_W + 20) b.sprite.x = -20;
-        b.bobPhase += dt * 1.3;
-        b.sprite.y = Math.round(b.sprite.y) + 0; // anchor; bob via subpixel handled below
-        // Mild bob: use a separate vertical offset via setting y each frame
-        // (we re-store base y, so we encode it on the sprite itself)
+        if (b.sprite.x > VIEW_W + 30) b.sprite.x = -30;
+        b.bobPhase += dt * 1.4;
+        b.sprite.y = Math.round(b.baseY + Math.sin(b.bobPhase) * 0.8);
       }
 
       // Animated wave lines + sparkles on sea.
