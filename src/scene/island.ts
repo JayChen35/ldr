@@ -108,7 +108,7 @@ function drawHouse(
   // Top trim
   px(g, left - 1, top - 1, w + 2, 1, PAL.whiteDark);
 
-  let domeBy = top - 1;
+  let domeBy = top;
 
   // Optional second story (step-back)
   if (opts.story2 && opts.story2 > 0) {
@@ -120,7 +120,7 @@ function drawHouse(
     px(g, left2, top2, 2, h2, PAL.whiteShade);
     px(g, left2 - 1, top2 - 1, w2 + 2, 1, PAL.whiteDark);
     drawWindow(g, cx - 2, top2 + 2);
-    domeBy = top2 - 1;
+    domeBy = top2;
   }
 
   // Door
@@ -192,6 +192,17 @@ function drawGround(parent: Container) {
     px(g, x - 1, y, 1, 1, c);
     px(g, x + 1, y, 1, 1, c);
     px(g, x, y - 1, 1, 1, c);
+  }
+
+  // Giant seashells
+  const giantShells: Array<[number, number, number]> = [
+    [120, 202, shellColor],
+    [380, 204, shellPink],
+    [250, 205, shellColor],
+  ];
+  for (const [x, y, c] of giantShells) {
+    px(g, x, y, 3, 2, c);
+    px(g, x - 1, y + 1, 5, 1, c);
   }
 
   parent.addChild(g);
@@ -294,23 +305,23 @@ function drawPalace(parent: Container) {
   px(g, 257, 129, 3, 1, PAL.wood);
 
   // Dome drum
-  px(g, 232, 105, 16, 4, PAL.white);
-  px(g, 232, 105, 4, 4, PAL.whiteShade);
+  px(g, 232, 112, 16, 4, PAL.white);
+  px(g, 232, 112, 4, 4, PAL.whiteShade);
   // Dome
   for (let dy = 0; dy < 8; dy++) {
     const wHalf = Math.round(Math.cos((dy / 8) * (Math.PI / 2)) * 7);
-    const startY = 97 + dy;
+    const startY = 104 + dy;
     px(g, 240 - wHalf, startY, wHalf * 2, 1, PAL.dome);
     px(g, 240 - wHalf, startY, Math.max(1, Math.round(wHalf / 2)), 1, PAL.domeHi);
   }
-  px(g, 233, 104, 14, 1, PAL.domeShade);
+  px(g, 233, 111, 14, 1, PAL.domeShade);
   // Cross finial
-  px(g, 240, 93, 1, 4, PAL.wood);
-  px(g, 239, 94, 3, 1, PAL.wood);
+  px(g, 240, 100, 1, 4, PAL.wood);
+  px(g, 239, 101, 3, 1, PAL.wood);
 
   // Side flag
-  px(g, 261, 102, 1, 5, PAL.wood);
-  px(g, 262, 103, 4, 3, PAL.awningRed);
+  px(g, 261, 109, 1, 5, PAL.wood);
+  px(g, 262, 110, 4, 3, PAL.awningRed);
 
   parent.addChild(g);
 }
@@ -527,6 +538,54 @@ function drawTownOuter(parent: Container) {
   parent.addChild(g);
 }
 
+// Greek flag on the right side
+function drawGreekFlag(parent: Container) {
+  const g = new Graphics();
+  const x = 410;
+  const y = 182;
+  const poleH = 22;
+  const flagW = 10;
+  const flagH = 7;
+
+  // Pole
+  px(g, x, y - poleH, 1, poleH, PAL.wood);
+  px(g, x - 1, y - poleH, 3, 1, PAL.wood);
+
+  // Flag base (blue)
+  px(g, x + 1, y - poleH + 1, flagW, flagH, 0x005bae);
+
+  // Stripes (white)
+  for (let i = 1; i < flagH; i += 2) {
+    px(g, x + 1, y - poleH + 1 + i, flagW, 1, 0xffffff);
+  }
+
+  // Canton (cross)
+  px(g, x + 1, y - poleH + 1, 5, 4, 0x005bae);
+  px(g, x + 3, y - poleH + 1, 1, 4, 0xffffff);
+  px(g, x + 1, y - poleH + 1 + 1, 5, 1, 0xffffff);
+
+  parent.addChild(g);
+}
+
+// Extra density: houses that bridge the gap between main landmarks
+function drawTownDense(parent: Container) {
+  const g = new Graphics();
+
+  // Tucked between palace and flanks
+  drawHouse(g, 210, 156, 14, 18, { domeColor: PAL.dome, domeHi: PAL.domeHi, domeR: 3 });
+  drawHouse(g, 270, 156, 14, 18, { domeColor: PAL.dome, domeHi: PAL.domeHi, domeR: 3, doorOnLeft: true });
+
+  // Near the roads leading to bakery/coffee
+  drawHouse(g, 192, 166, 16, 14, { awning: PAL.awningRed });
+  drawHouse(g, 288, 166, 16, 14, { awning: PAL.awningBlue, doorOnLeft: true });
+
+  // Overlapping the market/fountain area slightly
+  drawHouse(g, 215, 176, 12, 10, { windowCount: 1 });
+  drawHouse(g, 265, 176, 12, 10, { windowCount: 1, doorOnLeft: true });
+
+  parent.addChild(g);
+}
+
 // ─── Trees / shrubs (sprinkle around the town) ──────────────────────────────
 function drawDecorations(parent: Container) {
   const g = new Graphics();
@@ -581,8 +640,10 @@ export function buildIsland(layers: Layers, _renderer: Renderer): IslandRefs {
   drawTownFlanks(layers.islandMid); // tall houses adjacent to palace
   drawPalace(layers.islandMid); // centerpiece
   drawTownOuter(layers.islandMid); // outer cottages, smaller
+  drawTownDense(layers.islandMid); // bridge gaps, increase density
   drawBakery(layers.islandMid, anchors);
   drawCoffeeShop(layers.islandMid, anchors);
+  drawGreekFlag(layers.islandMid);
   drawDecorations(layers.islandMid);
   drawFountain(layers.islandMid, anchors);
   drawMarket(layers.islandMid);

@@ -60,8 +60,8 @@ function fitToWindow(canvas: HTMLCanvasElement, app: Application) {
   canvas.style.width = `${cssW}px`;
   canvas.style.height = `${cssH}px`;
   canvas.style.position = 'absolute';
-  canvas.style.left = `${Math.round((w - cssW) / 2)}px`;
-  canvas.style.top = `${Math.round((h - cssH) / 2)}px`;
+  canvas.style.left = `${Math.round((window.innerWidth - cssW) / 2)}px`;
+  canvas.style.top = `${Math.round((window.innerHeight - cssH) / 2)}px`;
 
   // Internal resolution stays at VIEW_W × VIEW_H.
   app.renderer.resize(VIEW_W, VIEW_H);
